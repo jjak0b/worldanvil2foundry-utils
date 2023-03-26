@@ -93,8 +93,8 @@ function engKey2Standard( key ) {
           value: "height"
       },
       {
-          cases: ["weight"],
-          value: "height"
+          cases: ["weight", "load"],
+          value: "weight"
       },
       {
           cases: ["population", "inhabitants", "population count"],
