@@ -11,9 +11,28 @@ let parsedPage = JSON.parse( fileContent );
 console.log( parsedPage );
 return;
 */
-const placesDirname  = argv.places ? path.resolve(argv.places) : null;
-const personsDirname = argv.persons ? path.resolve(argv.persons) : null;
 
+function ensureArrayOfPaths( itemOrarray ) {
+  console.log("#####", itemOrarray);
+  let myarray = [];
+  if( itemOrarray ) {
+    if( itemOrarray instanceof Array ) {
+      myarray = itemOrarray;
+    }
+    else {
+      myarray = [ itemOrarray ];
+    }
+    return myarray.map( customPath => path.resolve( customPath ) );
+  }
+  return myarray;
+}
+const dirnamesPerson = ensureArrayOfPaths(argv.persons);
+const dirnamesPlace = ensureArrayOfPaths(argv.places);
+const dirnamesOrganization = ensureArrayOfPaths(argv.orgs);
+const dirnamesPOI = ensureArrayOfPaths(argv.pois);
+
+// console.log( argv );
+// console.log( [placesDirname, personsDirname,  organizationDirname, poiDirname ] );
 function readFiles(dir, filelist = []) {
   const files = fs.readdirSync(dir);
 
@@ -28,6 +47,7 @@ function readFiles(dir, filelist = []) {
       const fileExtension = path.extname(file);
       const fileName = path.basename(file, fileExtension);
       const fileObject = {
+        dirpath: path.dirname( path.resolve( filePath ) ),
         filename: fileName,
         path: path.relative(process.cwd(), path.dirname(filePath)).replaceAll('\\', '__'),
         content: fileContent,
@@ -170,6 +190,14 @@ const templateJournalJson = '{"name":"{{ENTRY_NAME}}","flags":{"monks-enhanced-j
 // {{FOLDER_ID}} = PegclO3qLePm52iX
 // {{ENTRY_ID}} = BSd1X49uIXqQMM83
 
+function searchInPanels( panels, searchkey ) {
+  for( const items of panels ) {
+    let item = items.find( item => searchkey in item );
+    if( item ) return item;
+  }
+  return undefined;
+}
+
 async function main() {
 
   for( let index = 0; index < fileList.length; index++) {
@@ -209,24 +237,39 @@ async function main() {
     }
 
     // find first image in panels
-    let mainImgPanel = parsedPage.panels.find( (item) => "image" in item );
+    let mainImgPanel = searchInPanels( parsedPage.panels, "image" );
+    // console.log( mainImgPanel );
+    // console.log( parsedPage.panels );
 
-
-    // let personAttributes = ['race','gender','age','eyes','skin','hair', 'life','profession','voice', 'faction','height','weight','traits','ideals','bonds', 'flaws','longterm','shortterm','beliefs','secret'];
-    // let placeAttributes = ['age','size','government','alignment','faction','inhabitants','districts','agricultural','cultural','educational','indistrial','mercantile','military'];
+    let personAttributes = ['race','gender','age','eyes','skin','hair', 'life','profession','voice', 'faction','height','weight','traits','ideals','bonds', 'flaws','longterm','shortterm','beliefs','secret'];
+    let placeAttributes = ['age','size','government','alignment','faction','inhabitants','districts','agricultural','cultural','educational','indistrial','mercantile','military'];
     
     // parse panels and add values to attributes field
     let attributes = await panels2Attributes(parsedPage.panels);
 
+    console.log( attributes );
     let pagetype = "text";
 
     let journal_path = path.join( folderName || '', secondFolderName || '');
+/*
+    console.log( [ file.dirpath, placesDirname ]);
+    console.log( [ file.dirpath, poiDirname ]);
+    console.log( [ file.dirpath, personsDirname ]);
+    console.log( [ file.dirpath, organizationDirname ]);
+*/
+    const isPathForTypeTest = (apath) => file.dirpath.includes( apath );
 
-    if( placesDirname && placesDirname.includes(journal_path) ) {
+    if( dirnamesPlace.some(isPathForTypeTest) ) {
       pagetype = "place";
     }
-    else if( personsDirname && personsDirname.includes(journal_path) ) {
+    else if( dirnamesPOI.some(isPathForTypeTest) ) {
+      pagetype = "poi";
+    }
+    else if( dirnamesPerson.some(isPathForTypeTest) ) {
       pagetype = "person";
+    }
+    else if( dirnamesOrganization.some(isPathForTypeTest) ) {
+      pagetype = "organization";
     }
 
     let monksEnhancedJournalBase = {
@@ -241,19 +284,37 @@ async function main() {
 
 
     if( pagetype == "place") {
+      for ( const _attr of placeAttributes ) {
+        if( !(_attr in attributes) ) attributes[ _attr ] = { "value": '',  "hidden": true }
+      }
       let monksEnhancedJournalPlace = {
-        placetype: ("type" in attributes) ? attributes[ "type" ].value : "",
+        placetype: ("placetype" in attributes) ? attributes[ "placetype" ].value : "",
         location: ("location" in attributes) ? attributes[ "location" ].value: "",
-
       };
-      monksEnhancedJournal = Object.assign( monksEnhancedJournalBase, monksEnhancedJournalPlace );
+      monksEnhancedJournal = Object.assign( monksEnhancedJournal, monksEnhancedJournalPlace );
     }
     else if( pagetype == "person") {
+      for ( const _attr of personAttributes ) {
+        if( !(_attr in attributes) ) attributes[ _attr ] = { "value": '',  "hidden": true }
+      }
       let monksEnhancedJournalPerson = {
         role: ( ("role" in attributes) ? attributes[ "role" ].value : parsedPage.subject.honorific) || "",
         location: ("location" in attributes) ? attributes[ "location" ].value: "",
       };
-      monksEnhancedJournal = Object.assign( monksEnhancedJournalBase, monksEnhancedJournalPerson );
+      monksEnhancedJournal = Object.assign( monksEnhancedJournal, monksEnhancedJournalPerson );
+    }
+    else if( pagetype == "organization" ) {
+      let monksEnhancedJournalOrg = {
+        role: ( "alignment" in attributes ) ? attributes[ "alignment" ].value: "",
+        location: ( "location" in attributes ) ? attributes[ "location" ].value: "",
+      };
+      monksEnhancedJournal = Object.assign( monksEnhancedJournal, monksEnhancedJournalOrg );
+    }
+    else if( pagetype == "poi" ) {
+      let monksEnhancedJournalPOI = {
+        location: ( "location" in attributes ) ? attributes[ "location" ].value: "",
+      };
+      monksEnhancedJournal = Object.assign( monksEnhancedJournal, monksEnhancedJournalPOI );
     }
     else {
       // use default
@@ -277,16 +338,16 @@ async function main() {
   <div class="container">
     <div class="row">
       <div class="col-md-12">
-        ${parsedPage.subtitle}
-        <div>${parsedPage.authortitle}</div>
+        ${parsedPage.subtitle || ''}
+        ${parsedPage.authortitle ? `<div class="m-b-20 article-title-author">${parsedPage.authortitle}</div>` : ''}
       </div>
     </div>
     <div class="row">
       <div class="article-content-left col-md-8">
-        <div>${parsedPage.mainContent}</div>
-        <div class="article-footnotes">${parsedPage.footnotes}</div>
+        <div>${parsedPage.mainContent || ''}</div>
+        <div class="article-footnotes">${parsedPage.footnotes || ''}</div>
       </div>
-      <div class="article-content-right col-md-4">${parsedPage.rightContent}</div>
+      <div class="article-content-right col-md-4">${parsedPage.rightContent || ''}</div>
     </div>
   </div>
   `
@@ -310,7 +371,7 @@ async function main() {
             "content": mainContent,
             "markdown":""},
           "video":{"controls":true,"volume":0.5},
-          "src": mainImgPanel ? mainImgPanel["image"].img : null,
+          "src": mainImgPanel && "image" in mainImgPanel ? mainImgPanel["image"].img : null,
           "system":{},
           "sort":0,
           "ownership":{"default":-1},

@@ -30,26 +30,26 @@ function clearTag( tag ) {
     if( content == null ) return tag;
 
 	// replace tabs
-	content = content.replace(/\s\s\s\s/g, '');
+	// content = content.replace(/\s\s\s\s/g, '');
 
 	// replace &nbsp;
-	content = content.replaceAll('&nbsp;', '');
+	// content = content.replaceAll('&nbsp;', '');
 
     // remove comments
     content = content.replace(/<!--.*-->/g, '');
 
     // remove style
-    content = content.replace(/<style\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/style>/gi, '');
+    // content = content.replace(/<style\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/style>/gi, '');
 
     // remove this useless string
     content = content.replace('Remove these ads.', '');
     content = content.replace('Join the Worldbuilders Guild', '');
 
     // remove all attributes from all HTML tags
-    content = content.replace(/<(\w+)([^>]*)>/g, '<$1>');
+    content = content.replace(/<((?!img|a)\w+)([^>]*)>/g, '<$1>');
 
     // remove script tags from the content
-    content = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    // content = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
 	
 	// remove div tags
 	// content = content.replaceAll('<div>', '');
@@ -68,11 +68,11 @@ function clearTag( tag ) {
 	// content = content.replaceAll('</img>', '');
 	
 	// replace empty new line
-	content = content.replace(/\n\s*\n/gm, '');
+	// content = content.replace(/\n\s*\n/gm, '');
 
     // remove empty tags from the content
-    content = content.replace(/<[^/>][^>]*>\s*<\/[^>]+>|<[^/>][^>]*><\/>/g, '');
-    content = content.replace(/<[^/>][^>]*>\s*<\/[^>]+>|<[^/>][^>]*><\/>/g, '');
+    // content = content.replace(/<[^/>][^>]*>\s*<\/[^>]+>|<[^/>][^>]*><\/>/g, '');
+    // content = content.replace(/<[^/>][^>]*>\s*<\/[^>]+>|<[^/>][^>]*><\/>/g, '');
 	
 	// replace empty new line
 	content = content.replace(/\n\s*\n/gm, '');
@@ -251,8 +251,7 @@ Promise.all(
     files.map( file => fetchPage(file)
             .then( async htmlContent => parseHTML( htmlContent, file ) )
             .then( async obj => new Promise( (resolve, reject) => {
-                // const json = JSON.stringify( obj, null, 4 );
-                const json = JSON.stringify( obj );
+                const json = JSON.stringify( obj, null, 4 );
                 // console.log( json );
 
                 const filePath = path.join(scriptDir, file.path);
