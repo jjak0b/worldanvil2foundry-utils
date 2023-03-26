@@ -2,8 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { mainModule } = require('process');
-const{ translate } = require('bing-translate-api');
 
 // Get the directory of the script
 const scriptDir = path.join(path.dirname(process.argv[1]), 'worldanvil');
@@ -87,63 +85,83 @@ function clearTag( tag ) {
     return tag;
 }
 
-// translate keys to standard names
-function engKey2Standard( key ) {
 
-    // this function is like a switch case
+function trimSafe(str) {
+    return str != null ? str.trim() : null;
+}
 
-    // cases are possibile values contained in translation
-    // value is the mapped key word
-    let handlers = [
-        {
-            cases: [ "species", "races", "race" ],
-            value: "race"
-        },
-        {
-            cases: ["gender", "biological sex", "Sex", "genre"],
-            value: "gender"
-        },
-        {
-            cases: ["eyes"],
-            value: "eyes"
-        },
-        {
-            cases: ["hair", "hairstyle"],
-            value: "hair"
-        },
-        {
-            cases: ["skin", "complexion"],
-            value: "skin"
-        },
-        {
-            cases: ["tall", "height", "stature"],
-            value: "height"
-        },
-        {
-            cases: ["weight"],
-            value: "height"
-        },
-        {
-            cases: ["population", "inhabitants", "population count"],
-            value: "inhabitants"
+
+
+function parsePanelEntry( $, element ) {
+    let href = null;
+    let img = null;
+    let key = null;
+    let text = null;
+
+    if( $(element).hasClass('user-css-image-thumbnail') || $(element).hasClass('image-thumb-container') ) {
+        key = "image";
+
+        let imgEl = $(element).find("img[src]");
+        img = imgEl.length ? imgEl.attr('src') : null;
+
+//        if( img.startsWith("/") ) {
+//            img = new URL( img, url.origin).toString();
+//        }
+
+        return {
+            [key]: {
+                img: img,
+            }
+        };
+
+        // console.log( items );
+    }
+    else {
+        // key, value item
+        let keyEl = $(element).find(".section-title");
+        key = keyEl.text().trim();
+
+        let payloadEl = $(element).find(".section-payload");
+
+        let valueEl = payloadEl.length ? payloadEl : $(element);
+        if( $(valueEl).find( "ul" ).length ) {
+            let items = [];
+            $(valueEl).find( "ul > li").each( (liIdx, liEl) => {
+                items.push( parsePanelEntry( $, liEl ) );
+            });
+            return {
+                [key]: {
+                    list: items
+                }
+            }
         }
-    ];
-    
-    let stdKey = handlers.map( (handleCase, index) => {
-        if( handleCase.cases.some( keyCase => key.includes(keyCase) ) ) {
-            return handleCase.value;
+        else if( valueEl.find("a[href]").length ) {
+            text = valueEl.text().trim();
+            let linkEl = valueEl.find("a[href]");
+            href = linkEl.length ? linkEl.attr('href') : null;
+
+            return {
+                [key]: {
+                    href: href,
+                    text: text
+                }
+            }
         }
         else {
-            return null;
+            text = valueEl.text().trim();
+            
+            return {
+                [key]: {
+                    text: text
+                }
+            }
         }
-    }).find( str => str != null );
-
-    return stdKey ? stdKey : key;
-
+    }
 }
 
 async function parseHTML(html, resource ) {
-	
+    
+    console.log( "Parsing: ", resource.path )
     let url = new URL( resource.link );
 
     const categoryPath = resource.path;
@@ -159,116 +177,67 @@ async function parseHTML(html, resource ) {
 
     const subject = leftSection.find(".person-fullname").first();
 
-
-
-    
-    let characterDetails = null;
-
     let panels = [];
 
-    // parse right panels
+    // parse right panels infos
     rightSection.find(".panel").each( (idxPanel, panelEl) => {
         let items = [];
         
+        // use absolute urls
+        $('a[href], img[src]').each((i, el) => {
+            const $el = $(el);
+            const attr = $el.is('a') ? 'href' : 'src';
+            $el.attr(attr, new URL( $el.attr(attr), url.origin).toString());
+        });
+        
         let panelBody = $(panelEl).find(".panel-body").first();
         // parse panels
-        panelBody.find(".visibility-toggler").each( (elidx, element) => {
-            let href = null;
-            let img = null;
-            let key = null;
-            let text = null;
-
-            if( $(element).hasClass('user-css-image-thumbnail') || $(element).hasClass('image-thumb-container') ) {
-                key = "image";
-
-                let imgEl = $(element).find("img[src]");
-                img = imgEl.length ? imgEl.attr('src') : null;
-
-                if( img.startsWith("/") ) {
-                    img = new URL( img, url.origin).toString();
-                }
-
-                items.push( [
-                    key,
-                    {
-                        img: img,
-                    }
-                ]);
-
-                console.log( items );
-            }
-            else {
-                // key, value item
-                let keyEl = $(element).find(".section-title");
-                key = keyEl.text().trim();
-
-                let valueEl = $(element).find(".section-payload");
-                text = valueEl.text().trim();
-
-                let linkEl = valueEl.find("a[href]");
-                href = linkEl.length ? linkEl.attr('href') : null;
-
-                items.push( [
-                    key,
-                    {
-                        href: href,
-                        text: text
-                    }
-                ]);
-            }
-            $(element).remove();
+        $(panelEl).find(".panel-body > .visibility-toggler").each( (elidx, element) => {
+            items.push( parsePanelEntry( $, element ) );
+            // $(element).remove();
         });
 
-        if( panelBody ) {
-            items.push( [ "info", clearTag( panelBody ).prop("innerHTML") ] );
+        // not sure if use this
+        if( panelBody && panelBody.length ) {
+            // items.push( [ "info", clearTag( panelBody ).prop("innerHTML") ] );
         }
 
         panels.push( items );
-        $(panelEl).remove();
+        // $(panelEl).remove();
     });
 
-    let panelsData = []
-    // process panels
-    for( let idx = 0; idx < panels.length; idx++ ) {
-        let items = panels[ idx ];
-        // translate keys to standard names
-        let keys = items.map(item => item[0] );
-        // we can hit limit usage
-        try {
-            let { translation, correct, correctedText }= await translate(keys.join(" ## "), null, 'en' );
-            translated = correct && correctedText && correctedText.length > 0 ? correctedText : translation;
-            keys = translated.split(" ## ").map( s => s.toLowerCase() );
-        } catch (e) {
-            if (e.name === 'TooManyRequestsError') {
-                console.error( "TooManyRequestsError" );
-            }
-            console.error( "Error while translating keys, reason:", e );
-        }
-        let panelData = {}
-        items.map( (item, index) => {
-            panelData[ engKey2Standard(keys[ index ]) ] = item[ 1 ];
-        });
-        
-        panelsData.push( panelData );
-    }
+    let panelsData = panels;
+
+    let title = trimSafe( clearTag( page.find(".article-title > h1").first() ).text() ) || null;
+    let subtitle = trimSafe( clearTag( page.find(".article-subheading").first() ).prop('innerHTML') ) || null;
+    let subject_firstname = trimSafe( clearTag( subject.find(".person-firstname").first() ).text() ) || null;
+    let subject_middlename = trimSafe( clearTag( subject.find(".person-middlename").first() ).text() ) || null;
+    let subject_lastname = trimSafe(clearTag( subject.find(".person-lastname").first() ).text() ) || null;
+    let subject_honorific = trimSafe( clearTag( subject.find(".person-honorific").first() ).text() ) || null;
+    let authortitle = trimSafe( clearTag( subject.find(".article-title > .article-title-author").first() ).text() ) || null;
+    let mainContent = trimSafe( clearTag( leftSection.find(".user-css-vignette").first() ).prop('innerHTML') ) || "";
+    let rightContent = trimSafe( clearTag( rightSection ).prop('innerHTML') ) || null;
+    let footnotes = trimSafe( clearTag( leftSection.find(".article-footnotes") ).prop('innerHTML') ) || null;
+    
 
     return {
         sourceURL: url.toString(),
         categoryPath: categoryPath,
-        title: clearTag( page.find(".article-title > h1").first() ).text().trim() || null,
-        subtitle: clearTag( page.find(".article-subheading").first() ).prop('innerHTML').trim() || null,
+        title: title,
+        subtitle: subtitle,
+        authortitle: authortitle,
         subject: !subject ? null : {
-            firstname: clearTag( subject.find(".person-firstname").first() ).text().trim() || null,
-            middlename: clearTag( subject.find(".person-middlename").first() ).text().trim() || null,
-            lastname: clearTag( subject.find(".person-lastname").first() ).text().trim() || null,
-            honorific: clearTag( subject.find(".person-honorific").first() ).text().trim() || null
+            firstname: subject_firstname,
+            middlename: subject_middlename,
+            lastname: subject_lastname,
+            honorific: subject_honorific
         },
-        mainContent: clearTag( leftSection.find(".user-css-vignette").first() ).prop('innerHTML') || "",
-        // right section panels (parsed) data
+        mainContent: mainContent,
+        // right section parsed data
         panels: panelsData,
-        // left content on right section
-        otherInfo: clearTag( rightSection ).prop('innerHTML').trim() || null,
-        footnotes: clearTag( leftSection.find(".article-footnotes") ).prop('innerHTML').trim() || null,
+        // content on right section
+        rightContent: rightContent,
+        footnotes: footnotes,
     };
 
 }
@@ -280,30 +249,29 @@ async function main() {
 
 Promise.all(
     files.map( file => fetchPage(file)
-            .then( async htmlContent => await parseHTML( htmlContent, file ) )
+            .then( async htmlContent => parseHTML( htmlContent, file ) )
             .then( async obj => new Promise( (resolve, reject) => {
                 // const json = JSON.stringify( obj, null, 4 );
                 const json = JSON.stringify( obj );
-                console.log( json );
+                // console.log( json );
 
                 const filePath = path.join(scriptDir, file.path);
                 const dir = path.dirname(filePath);
-                if (!fs.existsSync(dir)) {
-                  fs.mkdir(dir, { recursive: true }, (err) => {
-                    if( err ) reject( err );
+
+                console.log( "parsed: ", file );
+
+                fs.mkdir(dir, { recursive: true }, (err) => {
+                    if( err && err.code != 'EEXIST' ) reject( err );
                     fs.writeFile(filePath, json,  'utf-8', (err) => {
                         if( err ) reject( err );
+                        console.log( "wrote: ", file );
                         resolve();
                     });
                   });
-                }
-                else {
-                    fs.writeFile(filePath, json,  'utf-8', (err) => {
-                        if( err ) reject( err );
-                        resolve();
-                    });
-                }
             }))
+            .catch( (err) => {
+                console.error("Error:", err);
+            })
             // .then( (value) => console.log( value ) )
             
     )
