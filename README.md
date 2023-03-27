@@ -24,7 +24,7 @@ Create a `urls.json` that contains a list in JSON format like the following exam
 Run the following command to fetch and parse articles data:
 
 ```
-node index.js ./path/to/your/urls.json
+node worldanvil2json.js ./path/to/your/urls.json
 ```
 
 It will create the directory tree with the articles in `./worldanvil` folder.
@@ -34,7 +34,7 @@ It will create the directory tree with the articles in `./worldanvil` folder.
 Run the following command to adapt the content of parsed articles to Foundry journals and directories, compatible with the module Monk's Enhanced Journal :
 
 ```
-node file-to-foundryjson.js [options] > out.json
+node json2foundry.js [options] > out.json
 ```
 
 where options are the following repeteable arguments options:
@@ -49,12 +49,12 @@ if not specified by any options, all articles will be adapted to text type by de
 **Note**: You can use the same option multiple times if you want to specify multiple directories for same type, like the following example:
 
 ```
-node file-to-foundryjson.js --persons=./worldanvil/good-npc --persons=./worldanvil/others/bad-npc --orgs=./worldanvil/good-organizations
+node json2foundry.js --persons=./worldanvil/good-npc --persons=./worldanvil/others/bad-npc --orgs=./worldanvil/good-organizations
 ```
 
 ## How to add to Foundry
 
-The `file-to-foundryjson.js ... > out.json` command will create a `out.json` file containing 2 sections separated by empty lines:
+The `json2foundry.js ... > out.json` command will create a `out.json` file containing 2 sections separated by empty lines:
 1. The first one contains a list of journals that you have to **APPEND** to the end of your `FoundryVTT data install path location/Data/worlds/YOUR WORLD/data/journal.db` file
 
 1. The second one contains a list of directoties that you have to **APPEND** to the end of your `FoundryVTT data install path location/Data/worlds/YOUR WORLD/data/folders.db` file
