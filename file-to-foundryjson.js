@@ -314,7 +314,10 @@ async function main() {
       });
   */
 
-    let mainContent = 
+  let subjectname = [parsedPage.subject.firstname, parsedPage.subject.middlename, parsedPage.subject.lastname]
+  .filter( str => str ).join(" ");
+
+  let mainContent = 
   `
   <div class="container">
     <div class="row">
@@ -325,6 +328,7 @@ async function main() {
     </div>
     <div class="row">
       <div class="article-content-left col-md-8">
+        ${ subjectname ? `<h3>${subjectname}</h3>` : '' }
         <div>${parsedPage.mainContent || ''}</div>
         <div class="article-footnotes">${parsedPage.footnotes || ''}</div>
       </div>
