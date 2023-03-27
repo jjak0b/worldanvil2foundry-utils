@@ -1,13 +1,13 @@
 {
-  "name": "test_worldanvil",
+  "name": "worldanvil2foundry-utils",
   "version": "1.0.0",
-  "description": "",
+  "description": "Parse Worldanvil articles into JSON and from JSON to Foundry journals compatible with Monk's Enhanced Journal",
   "main": " ",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC",
+  "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "@vitalets/google-translate-api": "^9.1.0",
     "axios": "^1.3.3",
