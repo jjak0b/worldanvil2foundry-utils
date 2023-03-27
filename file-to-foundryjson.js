@@ -4,16 +4,8 @@ const{ translate } = require('bing-translate-api');
 
 
 var argv = require('yargs/yargs')(process.argv.slice(2)).argv;
-/*
-const fileContent = fs.readFileSync("./worldanvil/Nozioni generali/Luoghi del mondo/Doriath, la città sconsacrata.html", 'utf-8');
-console.log( fileContent );
-let parsedPage = JSON.parse( fileContent );
-console.log( parsedPage );
-return;
-*/
 
 function ensureArrayOfPaths( itemOrarray ) {
-  console.log("#####", itemOrarray);
   let myarray = [];
   if( itemOrarray ) {
     if( itemOrarray instanceof Array ) {
@@ -31,8 +23,6 @@ const dirnamesPlace = ensureArrayOfPaths(argv.places);
 const dirnamesOrganization = ensureArrayOfPaths(argv.orgs);
 const dirnamesPOI = ensureArrayOfPaths(argv.pois);
 
-// console.log( argv );
-// console.log( [placesDirname, personsDirname,  organizationDirname, poiDirname ] );
 function readFiles(dir, filelist = []) {
   const files = fs.readdirSync(dir);
 
@@ -170,7 +160,6 @@ async function panels2Attributes(panels) {
 const fileDirectory = './worldanvil'; // example C:/Users/utonto/Desktop/test_worldanvil/worldanvil
 const fileList = readFiles(fileDirectory);
 
-// console.log(fileList);
 
 const baseFolderId = 'IMPORTDIOOFOLD00';
 const baseFolderName = 'worldanvil';
@@ -227,7 +216,6 @@ async function main() {
     let entryID = 'IMPORTDIOENTRY' + String(index + 1).padStart(2, '0');
     let ownerID = "KOJVAHHAzP2BhIJB";
     
-    // console.log( file.content );
     let parsedPage;
     try {
       parsedPage = JSON.parse( file.content );
@@ -238,8 +226,6 @@ async function main() {
 
     // find first image in panels
     let mainImgPanel = searchInPanels( parsedPage.panels, "image" );
-    // console.log( mainImgPanel );
-    // console.log( parsedPage.panels );
 
     let personAttributes = ['race','gender','age','eyes','skin','hair', 'life','profession','voice', 'faction','height','weight','traits','ideals','bonds', 'flaws','longterm','shortterm','beliefs','secret'];
     let placeAttributes = ['age','size','government','alignment','faction','inhabitants','districts','agricultural','cultural','educational','indistrial','mercantile','military'];
@@ -247,16 +233,11 @@ async function main() {
     // parse panels and add values to attributes field
     let attributes = await panels2Attributes(parsedPage.panels);
 
-    console.log( attributes );
+    // console.log( attributes );
     let pagetype = "text";
 
     let journal_path = path.join( folderName || '', secondFolderName || '');
-/*
-    console.log( [ file.dirpath, placesDirname ]);
-    console.log( [ file.dirpath, poiDirname ]);
-    console.log( [ file.dirpath, personsDirname ]);
-    console.log( [ file.dirpath, organizationDirname ]);
-*/
+
     const isPathForTypeTest = (apath) => file.dirpath.includes( apath );
 
     if( dirnamesPlace.some(isPathForTypeTest) ) {
