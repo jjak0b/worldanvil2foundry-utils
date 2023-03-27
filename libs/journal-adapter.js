@@ -119,9 +119,9 @@ function searchInPanels( panels, searchkey ) {
 async function adapt2Journal( parsedPage, file, directoriesTypes, pageID, entryID, folderIdEntry, ownerID) {
 
     const dirnamesPerson = directoriesTypes.dirnamesPerson;
-    const dirnamesPlace = directoriesTypes.dirnamesPerson;
-    const dirnamesOrganization = directoriesTypes.dirnamesPerson;
-    const dirnamesPOI = directoriesTypes.dirnamesPerson;
+    const dirnamesPlace = directoriesTypes.dirnamesPlace;
+    const dirnamesOrganization = directoriesTypes.dirnamesOrganization;
+    const dirnamesPOI = directoriesTypes.dirnamesPOI;
 
     const personAttributes = ['race','gender','age','eyes','skin','hair', 'life','profession','voice', 'faction','height','weight','traits','ideals','bonds', 'flaws','longterm','shortterm','beliefs','secret'];
     const placeAttributes = ['age','size','government','alignment','faction','inhabitants','districts','agricultural','cultural','educational','indistrial','mercantile','military'];
